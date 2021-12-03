@@ -194,9 +194,7 @@ function setupFV(f,v) {
     vol = v;
     document.getElementById("freqval").innerText = freq;
     document.getElementById("volval").innerText = vol;
-//    osc.frequency.value = freq;
     osc.frequency.setTargetAtTime(freq, audioctx.currentTime, 0.05);
-//    gain.gain.value = Math.pow(10,vol/20);
     gain.gain.setTargetAtTime(Math.pow(10,vol/20),audioctx.currentTime, 0.05);
     redraw();
 }
@@ -210,17 +208,17 @@ function drawGraph() {
     }
     function vline(x,c,w) {
         ctx.fillStyle = c;
-        ctx.fillRect(x, 0, w, 350);
+        ctx.fillRect(x, 13, w, 338);
     }
     function hline(y,c,w) {
         ctx.fillStyle = c;
-        ctx.fillRect(50, y, 900, w);
+        ctx.fillRect(50, y, 820, w);
     }
     for(let f = 1000; f < 2000; f += 100)
         vline(getx(f), "#ccc", 1);
     for(let f = 10000; f < 20000; f += 1000)
         vline(getx(f), "#ccc", 1);
-    for(let f = 100; f <= 1000; f += 100)
+    for(let f = 500; f <= 1000; f += 100)
         vline(getx(f),"#444", 1);
     for(let f = 1000; f <= 10000; f += 1000)
         vline(getx(f),"#444", 1);
@@ -229,13 +227,17 @@ function drawGraph() {
     for(let f of xlabel) {
         const w = ctx.measureText(f).width ;
         ctx.fillStyle = "#000";
-        ctx.fillText(f,getx(f)-w/2,380);
+        ctx.fillText(f,getx(f)-w/2,370);
     }
     for(let v = 0; v >= -84; v -= 12) {
         hline(gety(v), "#666", 1);
         ctx.fillStyle = "#000";
-        ctx.fillText(v, 10, gety(v));
+        ctx.fillText(v, 20, gety(v));
     }
+    hline(gety(0),"#666",2);
+    vline(getx(500),"#666",2);
+    ctx.fillText("(dB)",10,370);
+    ctx.fillText("(Hz)",40,385);
     
     const cx = getx(freq);
     vline(getx(freq), "#f66", 2);
@@ -290,7 +292,8 @@ function setVol(v) {
     setupFV(freq,vol);
 }
 function redraw() {
-    ctx.clearRect(0,0,900,400);
+    ctx.fillStyle="#fff";
+    ctx.fillRect(0,0,900,400);
     drawGraph();
 }
 function setAudible(f) {
