@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c&display=swap" rel="stylesheet">
+<style>
+html {
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    font-weight:600;
+    padding:0;
+    margin:0;
+}
+body {
+    padding:0;
+    margin:0;
+    background:#234;
+}
+canvas {
+    border:1px solid #666;
+    background:#ffe;
+}
+button {
+    width:40px;
+    height:60px;
+    font-size:20px;
+    border-radius: 6px;
+    filter: drop-shadow(2px 2px 2px #667);
+    color:#000;
+    background: linear-gradient(#ddf, #bbe);
+
+}
+#header {
+    position:relative;
+    height:80px;
+    padding:0;
+    margin:0;
+    background: #ccf;
+    color:#338;
+    filter: drop-shadow(2px 2px 2px);
+}
+#header h1 {
+    display:block;
+    position:absolute;
+    left:160px;
+    top:-15px;
+    padding:0px;
+    margin:20px;
+    font-size:36px;
+}
+#base {
+    width:900px;
+    height:100%;
+    padding:10px;
+    margin:0 auto;
+    background: linear-gradient(#aaf, #66e);
+}
+#params {
+    display:flex;
+    vertical-align: middle;
+    height:60px;
+    padding:2px 25px;
+    margin:20px 0px;
+}
+.parambase {
+    display:flex;
+    justify-content: space-between;
+    width:200px;
+    height:40px;
+    font-size:24px;
+    line-height: 24px;
+    background:#acc;
+    vertical-align: middle;
+    padding:4px;
+    margin:5px;
+    text-align: center;
+    vertical-align: middle;
+}
+.parambase button {
+    vertical-align: middle;
+    height:40px;
+}
+.parambase div {
+    height:40px;
+    vertical-align: middle;
+    line-height: 40px;
+}
+.parambase div+div {
+    font-size:20px;
+    height:40px;
+    line-height: 45px;
+}
+.cmdbtn {
+    display:block;
+    width:130px;
+    height:45px;
+    vertical-align: middle;
+    margin:auto 5px;
+
+}
+#start {
+/*    background:#363;*/
+}
+#start.play {
+/*    background:#3e3;*/
+    background: linear-gradient(#8da, #6b9);
+    color:#000;
+}
+#setaudible, #delaudible {
+    width:120px;
+}
+#freq {
+}
+#freq div {
+    display:inline-block;
+}
+#freqval {
+    font-size:24px;
+}
+#vol {
+    width:270px;
+    font-size:24px;
+    background:#acc;
+    vertical-align: middle;
+    padding:4px;
+}
+#volval {
+    font-size:24px;
+}
+#manual {
+    margin:20px;
+    background:#ddf;
+    padding:5px 20px;
+    font-weight: normal;
+    font-size:18px;
+    font-family: sans-serif;
+}
+</style>
+<script>
+
+var isPlay = false;
+var freq = 500;
+var vol = -20;
+var audioctx = new AudioContext();
+var osc = audioctx.createOscillator();
+var gain = audioctx.createGain();
+var canvas;
+var ctx;
+var drag;
+var audible = [];
+var fmin = 500;
+var fmax = 22000;
+gain.gain.value=Math.pow(10,vol/20);
+osc.frequency.value = freq;
+osc.connect(gain).connect(audioctx.destination);
+osc.start();
+
+function init() {
+    canvas = document.getElementById("canvas");
+    ctx = canvas.getContext("2d");
+    function setxy(x,y) {
+        x|=0;
+        y = y - 350;
+        let v = y/4 - 1.5;
+        v = v - (v%3);
+        let f = Math.pow(10, ((x - 200) / 500) + 3) + 250;
+        f = f - (f%500);
+        v = Math.min(Math.max(v, -84), 0);
+        f = Math.min(Math.max(f, fmin), fmax);
+        setupFV(f,v);
+    }
+    canvas.onmousedown = (ev) => {
+        drag = 1;
+        setxy(ev.offsetX,ev.offsetY);
+    }
+    window.onmousemove = (ev) => {
+        if(drag) {
+            const r = canvas.getBoundingClientRect();
+            setxy(ev.clientX - r.left, ev.clientY - r.top);
+        }
+    }
+    window.onmouseup = (ev) => {
+        if(drag) {
+            const r = canvas.getBoundingClientRect();
+            setxy(ev.clientX - r.left, ev.clientY - r.top);
+        }
+        drag = 0;
+    }
+    redraw();
+}
+function setupFV(f,v) {
+    freq = f;
+    vol = v;
+    document.getElementById("freqval").innerText = freq;
+    document.getElementById("volval").innerText = vol;
+//    osc.frequency.value = freq;
+    osc.frequency.setTargetAtTime(freq, audioctx.currentTime, 0.05);
+//    gain.gain.value = Math.pow(10,vol/20);
+    gain.gain.setTargetAtTime(Math.pow(10,vol/20),audioctx.currentTime, 0.05);
+    redraw();
+}
+function drawGraph() {
+    const xlabel = [500,1000,2000,3000,4000,5000,7000,10000,20000];
+    function getx(f) {
+        return (Math.log10(f) -3) * 500 + 200;
+    }
+    function gety(v) {
+        return 350 + v * 4;
+    }
+    function vline(x,c,w) {
+        ctx.fillStyle = c;
+        ctx.fillRect(x, 0, w, 350);
+    }
+    function hline(y,c,w) {
+        ctx.fillStyle = c;
+        ctx.fillRect(50, y, 900, w);
+    }
+    for(let f = 1000; f < 2000; f += 100)
+        vline(getx(f), "#ccc", 1);
+    for(let f = 10000; f < 20000; f += 1000)
+        vline(getx(f), "#ccc", 1);
+    for(let f = 100; f <= 1000; f += 100)
+        vline(getx(f),"#444", 1);
+    for(let f = 1000; f <= 10000; f += 1000)
+        vline(getx(f),"#444", 1);
+    for(let f = 10000; f <= 100000; f += 10000)
+        vline(getx(f),"#444", 1);
+    for(let f of xlabel) {
+        const w = ctx.measureText(f).width ;
+        ctx.fillStyle = "#000";
+        ctx.fillText(f,getx(f)-w/2,380);
+    }
+    for(let v = 0; v >= -84; v -= 12) {
+        hline(gety(v), "#666", 1);
+        ctx.fillStyle = "#000";
+        ctx.fillText(v, 10, gety(v));
+    }
+    
+    const cx = getx(freq);
+    vline(getx(freq), "#f66", 2);
+    hline(gety(vol), "#f66", 2);
+    ctx.strokeStyle = "#07f";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for(i = 1; i <= 40; ++i) {
+        const x = getx(i * 500);
+        const y = gety(audible[i]);
+        if(i == 1)
+            ctx.moveTo(x, y);
+        else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.stroke();
+    for(i = 1; i <= 40; ++i) {
+        if(audible[i]!=undefined) {
+            const f = i * 500;
+            ctx.fillStyle="#00f";
+            ctx.fillRect(getx(f)-4, gety(audible[i])-4, 10,10);
+        }
+    }
+}
+function start() {
+    if(isPlay) {
+        isPlay = false;
+        document.getElementById("start").classList.remove("play");
+        audioctx.suspend();
+    }
+    else {
+        isPlay = true;
+        document.getElementById("start").classList.add("play");
+        audioctx.resume();
+    }
+}
+function setFreq(f) {
+    freq += f;
+    if(freq < fmin)
+        freq = fmin;
+    if(freq > fmax)
+        freq = fmax;
+    setupFV(freq,vol);
+}
+function setVol(v) {
+    vol += v;
+    if(vol < -84)
+        vol = -84;
+    if(vol > 0)
+        vol = 0;
+    setupFV(freq,vol);
+}
+function redraw() {
+    ctx.clearRect(0,0,900,400);
+    drawGraph();
+}
+function setAudible(f) {
+    if(f) {
+        audible[freq/500|0] = vol;
+    }
+    else {
+        audible[freq/500|0] = undefined;
+    }
+    redraw();
+}
+function download() {
+    console.log("download");
+    var img = canvas.toDataURL();
+    var a = document.createElement("a");
+    a.href=img;
+    a.download="auditory_test.png";
+    a.click();
+}
+window.onload = init;
+</script>
+</head>
+<body>
+<div id="base">
+    <div id="header"><img src="images/g200kg160x80.png"/><h1>聴力テスト</h1></div>
+    <div id="params">
+    <button id="start" class="cmdbtn" onclick="start()">開始 / 停止</button>
+    <div id="freqbase" class="parambase">
+        <button onclick="setFreq(-500); redraw();">-</button>
+        <div id="freqval">500</div><div>Hz</div>
+        <button onclick="setFreq(500); redraw();">+</button>
+    </div>
+    <div id="volbase" class="parambase">
+        <button onclick="setVol(-3); redraw();">-</button>
+        <div id="volval">-20</div><div>dB</div>
+        <button onclick="setVol(3); redraw();">+</button>
+    </div>
+    <button id="setaudible" class="cmdbtn" onclick="setAudible(1)">聴こえる</button>
+    <button id="delaudible" class="cmdbtn" onclick="setAudible(0)">消去</button>
+</div>
+<canvas width="900" height="400" id="canvas"></canvas><br/>
+<button style="width:200px;height:32px;font-size:12px;" onclick="download()">グラフをダウンロードする</button>
+<div id="manual">
+    <h2>説明</h2>
+    <p>これは聴覚の周波数特性を確認するためのページです。</p>
+    <h2>使い方</h2>
+    <p>[開始 / 停止] ボタンを押すと音が鳴ります。もう一度押すとと止まります。</p>
+    <p>音はサイン波で周波数と音量はそれぞれグラフ上のドラッグ、または数値の隣の[-] / [+] ボタンで操作できます。</p>
+
+    <p>周波数は 500Hz 刻み、音量は 3dB 刻みになります。周波数はグラフ上で右に行くほど高く、音量は下に行くほど大きくなります。</p>
+
+    <p>これで各周波数で、音量が小さくなって聴こえなくなる直前、ぎりぎり聴こえる限界の点を探してください。聴こえる限界の音量を見つけたら[聴こえる]ボタンを押すとグラフ上に点が追加されます。また不要な点は[消去]ボタンで消せます。</p>
+
+    <p>周波数を変えながら限界点を追加して行くと聴覚の感度の周波数特性のグラフができあがります。このグラフは実際にはアンプ/スピーカー/ヘッドホンなどの再生環境の特性と聴覚の特性が合わさったものになりますので、参考程度にしてください。また同様に音量の絶対値は再生環境によって変わりますので意味はありません。</p>
+
+    <p>※ 高い周波数で聴こえない/聴こえにくいからと言ってむやみに大きな音量を聴き続けるのは耳にとって負担になります。ご注意ください。</p>
+    <img src="images/graph.png" width="600"/>
+<p></p>
+</div>
+
+</div>
+</body>
+</html>
