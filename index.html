@@ -20,6 +20,7 @@ body {
 canvas {
     border:1px solid #666;
     background:#ffe;
+    user-select:none;
 }
 button {
     width:40px;
@@ -93,7 +94,7 @@ button {
 }
 .cmdbtn {
     display:block;
-    width:130px;
+    width:150px;
     height:45px;
     vertical-align: middle;
     margin:auto 5px;
@@ -168,6 +169,14 @@ lfo.start();
 function init() {
     canvas = document.getElementById("canvas");
     ctx = canvas.getContext("2d");
+    canvas.oncontextmenu = (event) => {event.preventDefault(); return false;};
+    function getxy(event) {
+        var ev = event;
+        if(event.touches)
+            ev = event.changedTouches[0];
+        const r = canvas.getBoundingClientRect();
+        return {x:ev.clientX - r.left, y:ev.clientY - r.top};
+    }
     function setxy(x,y) {
         x|=0;
         y = y - 350;
@@ -179,28 +188,39 @@ function init() {
         f = Math.min(Math.max(f, fmin), fmax);
         setupFV(f,v);
     }
-    canvas.onmousedown = (ev) => {
+    canvas.onmousedown = canvas.ontouchstart = (event) => {
+        var p = getxy(event);
+        console.log(p.x,p.y);
         drag = 1;
-        setxy(ev.offsetX,ev.offsetY);
+        setxy(p.x,p.y);
+        event.preventDefault();
+        event.stopPropagation();
     }
-    window.onmousemove = (ev) => {
+    window.onmousemove = window.ontouchmove = (event) => {
+        var p = getxy(event);
         if(drag) {
             const r = canvas.getBoundingClientRect();
-            setxy(ev.clientX - r.left, ev.clientY - r.top);
+            setxy(p.x, p.y);
         }
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
     }
-    window.onmouseup = (ev) => {
+    window.onmouseup = window.ontouchend = (event) => {
+        var p = getxy(event);
         if(drag) {
             const r = canvas.getBoundingClientRect();
-            setxy(ev.clientX - r.left, ev.clientY - r.top);
+            setxy(p.x, p.y);
         }
         drag = 0;
     }
     redraw();
+    event.preventDefault();
 }
 function setupFV(f,v) {
     freq = f;
     vol = v;
+    console.log(f,v);
     document.getElementById("freqval").innerText = freq;
     document.getElementById("volval").innerText = vol;
     osc.frequency.setTargetAtTime(freq, audioctx.currentTime, 0.05);
