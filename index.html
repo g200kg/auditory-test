@@ -163,6 +163,7 @@ lfo.type="sine";
 lfogain.gain.value = 0;
 lfo.connect(shaper).connect(lfogain.gain);
 osc.connect(gain).connect(lfogain).connect(audioctx.destination);
+audioctx.suspend();
 osc.start();
 lfo.start();
 
@@ -190,7 +191,6 @@ function init() {
     }
     canvas.onmousedown = canvas.ontouchstart = (event) => {
         var p = getxy(event);
-        console.log(p.x,p.y);
         drag = 1;
         setxy(p.x,p.y);
         event.preventDefault();
@@ -220,7 +220,6 @@ function init() {
 function setupFV(f,v) {
     freq = f;
     vol = v;
-    console.log(f,v);
     document.getElementById("freqval").innerText = freq;
     document.getElementById("volval").innerText = vol;
     osc.frequency.setTargetAtTime(freq, audioctx.currentTime, 0.05);
