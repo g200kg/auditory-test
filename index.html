@@ -145,16 +145,25 @@ var vol = -20;
 var audioctx = new AudioContext();
 var osc = audioctx.createOscillator();
 var gain = audioctx.createGain();
+var lfo = audioctx.createOscillator();
+var lfogain = audioctx.createGain();
 var canvas;
 var ctx;
 var drag;
 var audible = [];
 var fmin = 500;
 var fmax = 22000;
+var shaper = audioctx.createWaveShaper();
+shaper.curve = new Float32Array([0,0,1,1]);
 gain.gain.value=Math.pow(10,vol/20);
 osc.frequency.value = freq;
-osc.connect(gain).connect(audioctx.destination);
+lfo.frequency.value = 2;
+lfo.type="sine";
+lfogain.gain.value = 0;
+lfo.connect(shaper).connect(lfogain.gain);
+osc.connect(gain).connect(lfogain).connect(audioctx.destination);
 osc.start();
+lfo.start();
 
 function init() {
     canvas = document.getElementById("canvas");
